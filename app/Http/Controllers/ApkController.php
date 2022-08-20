@@ -21,12 +21,20 @@ class ApkController extends Controller
 {
     //
     function getApksos($id){
-        $crawler = GoutteFacade::request('GET', 'https://apksos.com/download-app/'. $id);
-        $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8.text-center > p > a');
-        $arrExtracted = $filterData->extract(array('href'));
-        if (count($arrExtracted) > 0){
-            $dLink = $arrExtracted[0];
-        } else {
+//        $crawler = GoutteFacade::request('GET', 'https://apksos.com/download-app/'. $id);
+//        $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8.text-center > p > a');
+//        $arrExtracted = $filterData->extract(array('href'));
+//        if (count($arrExtracted) > 0){
+//            $dLink = $arrExtracted[0];
+//        } else {
+//            $dLink = '';
+//        }
+//        return $dLink;
+        $duskController = new DuskController();
+        try {
+            $dLink = $duskController->duskUrl($id);
+        } catch (\Exception $exception) {
+            // catch error
             $dLink = '';
         }
         return $dLink;

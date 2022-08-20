@@ -39,4 +39,22 @@ class DuskController extends Controller
         $browser->quit();
         $process->stop();
     }
+
+    public function duskUrl($id)
+    {
+        $process = (new ChromeProcess)->toProcess();
+        $process->start();
+        $options = (new ChromeOptions)->addArguments(['--disable-gpu', '--headless']);
+        $capabilities = DesiredCapabilities::chrome()->setCapability(ChromeOptions::CAPABILITY, $options);
+        $driver = retry(5, function () use($capabilities) {
+            return RemoteWebDriver::create('http://localhost:9515', $capabilities, 60000, 60000);
+        }, 50);
+        $browser = new Browser($driver);
+        $browser->visit('https://apksos.com/download-app/' . $id);
+        $browser->waitFor("div.section.row > div.col-sm-12.col-md-8.text-center > p > a", 60);
+        $html = $browser->element('div.section.row > div.col-sm-12.col-md-8.text-center > p > a')->getDomProperty('href');
+        $browser->quit();
+        $process->stop();
+        return $html;
+    }
 }

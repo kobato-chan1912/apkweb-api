@@ -27,4 +27,4 @@ Route::get('/', function () {
 Route::get("/api/apk/{id}", "ApkController@index")->name("getApk");
 Route::get("/api/checkApk/{id}", "ApkController@checkDuplicate")->name("checkApk");
 
-Route::get("/dusk", "DuskController@index");
+Route::get("/dusk", "DuskController@duskTest");
