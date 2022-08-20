@@ -168,9 +168,7 @@ class ApkController extends Controller
             \File::cleanDirectory($savePath);
         }
         $fileName = "$id"."_".$version."_.$extension";
-        echo $fileName;
         file_put_contents(public_path("uploads/apks/$id/$fileName"), $getApk); // save to public folder
-        echo "Saved File";
         return env("APP_URL"). "/uploads/apks/$id/$fileName"; // Can add Current Point URL
     }
 
@@ -195,7 +193,6 @@ class ApkController extends Controller
         $location = "";
         if (array_key_exists("packageName", $app) && ($app["price"] == "0" || $app["price"] == null )){ // app found and free
             // update version info
-            echo "Start to run crawler here";
             if($app["versionName"] == "Varies with device"){
                 $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
                 $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
@@ -210,9 +207,7 @@ class ApkController extends Controller
             else {
                 // change to apksos module
                 //
-                echo "Change to apksos";
                 $directLink = $this->getApksos($id);
-                echo "Change to apksos Done";
                 if ($directLink !== ''){
                     $fileExt = $this->urlExtension($directLink);
                     if ($fileExt == "apk"){
@@ -252,6 +247,6 @@ class ApkController extends Controller
         // save to DB //
 
 
-//        return response()->json($app);
+        return response()->json($app);
     }
 }
