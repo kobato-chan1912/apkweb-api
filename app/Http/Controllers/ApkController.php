@@ -168,7 +168,9 @@ class ApkController extends Controller
             \File::cleanDirectory($savePath);
         }
         $fileName = "$id"."_".$version."_.$extension";
+        echo $fileName;
         file_put_contents(public_path("uploads/apks/$id/$fileName"), $getApk); // save to public folder
+        echo "Saved File";
         return env("APP_URL"). "/uploads/apks/$id/$fileName"; // Can add Current Point URL
     }
 
@@ -247,6 +249,6 @@ class ApkController extends Controller
         // save to DB //
 
 
-        return response()->json($app);
+//        return response()->json($app);
     }
 }
