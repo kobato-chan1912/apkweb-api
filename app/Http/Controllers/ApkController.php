@@ -198,9 +198,9 @@ class ApkController extends Controller
         if (array_key_exists("packageName", $app) && ($app["price"] == "0" || $app["price"] == null )){ // app found and free
             // update version info
             if($app["versionName"] == "Varies with device"){
-                $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
-                $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
-                $versionText = str_replace("Version: ", "", $filterData);
+//                $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
+//                $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
+//                $versionText = str_replace("Version: ", "", $filterData);
                 $app["versionName"] = $appRequest->version;
             }
 //            $directLink = $this->getApiStore($id); // If you want to revert to apistore api, uncomment this
