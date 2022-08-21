@@ -53,10 +53,9 @@ class AppUpdate extends Command
             if($apk->price == 0) {
                 if ($app["versionName"] == "Varies with device") {
                     // Step-3: Check App version from 3rd Service. Go step 4.
-                    $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/' . $apk->package_name);
-                    $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
-                    $versionText = str_replace("Version: ", "", $filterData);
-                    $app["versionName"] = $versionText; // remake app version name
+                    $req = Http::get(env("BOT_URL")."/apk/$apk->package_name");
+                    $jsonGet = $req->body();
+                    $app["versionName"] = json_decode($jsonGet)->version; // remake app version name
                 }
 
                 // Step-4: If App Version does not change, skips this app. Else go to step 5.
@@ -82,8 +81,6 @@ class AppUpdate extends Command
                         echo $apk->title . " ---- update Failed" . "\n";
                         LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => "Failed"]);
                     }
-
-
                 }
             }
 
