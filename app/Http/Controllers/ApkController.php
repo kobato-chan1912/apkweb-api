@@ -30,14 +30,9 @@ class ApkController extends Controller
 //            $dLink = '';
 //        }
 //        return $dLink;
-        $duskController = new DuskController();
-        try {
-            $dLink = $duskController->duskUrl($id);
-        } catch (\Exception $exception) {
-            // catch error
-            $dLink = '';
-        }
-        return $dLink;
+        $req = Http::get(env("BOT_URL")."/apk/$id");
+        $jsonGet = $req->body();
+        return json_decode($jsonGet);
     }
 
     public function loadDusk($id)
@@ -199,13 +194,14 @@ class ApkController extends Controller
         $app = $google->parseApplication($id, "vi");
         $directLink = "";
         $location = "";
+        $appRequest = $this->getApksos($id);
         if (array_key_exists("packageName", $app) && ($app["price"] == "0" || $app["price"] == null )){ // app found and free
             // update version info
             if($app["versionName"] == "Varies with device"){
                 $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
                 $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
                 $versionText = str_replace("Version: ", "", $filterData);
-                $app["versionName"] = $versionText;
+                $app["versionName"] = $appRequest->version;
             }
 //            $directLink = $this->getApiStore($id); // If you want to revert to apistore api, uncomment this
             $directLink = null; // Use APKSOS Server Only // If you want to revert to apistore api, comment this
@@ -215,7 +211,7 @@ class ApkController extends Controller
             else {
                 // change to apksos module
                 //
-                $directLink = $this->getApksos($id);
+                $directLink = $appRequest->dlink;
                 if ($directLink !== ''){
                     $fileExt = $this->urlExtension($directLink);
                     if ($fileExt == "apk"){
