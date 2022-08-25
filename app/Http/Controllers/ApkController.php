@@ -187,16 +187,17 @@ class ApkController extends Controller
     }
 
 
-    public function index($id)
+    public function index($id, Request $request)
     {
 
         $google = new \GooglePlay();
         $app = $google->parseApplication($id, "vi");
         $directLink = "";
         $location = "";
-        $appRequest = $this->getApksos($id);
-        if (array_key_exists("packageName", $app) && ($app["price"] == "0" || $app["price"] == null )){ // app found and free
+
+        if (array_key_exists("packageName", $app)){ // app found and free
             // update version info
+            $appRequest = $this->getApksos($id);
             if($app["versionName"] == "Varies with device"){
 //                $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
 //                $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
@@ -205,44 +206,47 @@ class ApkController extends Controller
             }
 //            $directLink = $this->getApiStore($id); // If you want to revert to apistore api, uncomment this
             $directLink = null; // Use APKSOS Server Only // If you want to revert to apistore api, comment this
-            if ($directLink !== null){ // Found Direct Link in API Store
-                $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
-            }
-            else {
-                // change to apksos module
-                //
-                $directLink = $appRequest->dlink;
-                if ($directLink !== ''){
-                    $fileExt = $this->urlExtension($directLink);
-                    if ($fileExt == "apk"){
-                        $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
-                    }
-                    if ($fileExt == "zip"){
-                        $fileVer = $app["versionName"];
-                        $location = $this->saveFile($directLink, $id, $fileVer, "zip");
-                        $fileName = "$id"."_".$app["versionName"]."_.zip";
-                        $zipFile = "$id"."_".$app["versionName"];
-                        $filePath = public_path("uploads/apks/$id/$fileName");
-                        $fileSave = public_path("uploads/apks/$id");
-                        $this->unzip($filePath, $fileSave);
-                        // remove file after, rename apk file //
-                        foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
-                            if(str_contains($fileInFolder, $id)){
-                                $file = realpath($fileInFolder);
-                                rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
-                                \File::delete($file); // delete old apk file
-                                break;
+
+            if (!$request->has("mode")) { // if not has mode = only
+                if ($directLink !== null) { // Found Direct Link in API Store
+                    $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
+                } else {
+                    // change to apksos module
+                    //
+                    if ($app["price"] == "0" || $app["price"] == null) {
+                        $directLink = $appRequest->dlink;
+                        if ($directLink !== '') {
+                            $fileExt = $this->urlExtension($directLink);
+                            if ($fileExt == "apk") {
+                                $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
+                            }
+                            if ($fileExt == "zip") {
+                                $fileVer = $app["versionName"];
+                                $location = $this->saveFile($directLink, $id, $fileVer, "zip");
+                                $fileName = "$id" . "_" . $app["versionName"] . "_.zip";
+                                $zipFile = "$id" . "_" . $app["versionName"];
+                                $filePath = public_path("uploads/apks/$id/$fileName");
+                                $fileSave = public_path("uploads/apks/$id");
+                                $this->unzip($filePath, $fileSave);
+                                // remove file after, rename apk file //
+                                foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
+                                    if (str_contains($fileInFolder, $id)) {
+                                        $file = realpath($fileInFolder);
+                                        rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
+                                        \File::delete($file); // delete old apk file
+                                        break;
+                                    }
+                                }
+                                \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
+                                \File::delete($filePath); // remove downloaded zip file
+                                // add extra zip //
+                                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
+                                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
+
                             }
                         }
-                        \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
-                        \File::delete($filePath); // remove downloaded zip file
-                        // add extra zip //
-                        new \GoodZipArchive(public_path("uploads/apks/$id/$id"),public_path("uploads/apks/$id/$fileName"));
-                        \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
-
                     }
                 }
-
             }
         }
 //

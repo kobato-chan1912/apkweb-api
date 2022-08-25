@@ -41,7 +41,7 @@ class AppUpdate extends Command
      */
     public function handle()
     {
-        $apks = App::all();
+        $apks = App::where("type_upload", "auto")->get();
         // Foreach Apps in --role argument
         foreach($apks as $apk)
         {
@@ -75,7 +75,7 @@ class AppUpdate extends Command
                             "version" => $update["versionName"],
                             "size" => $update["size"],
                             "apkFile" => $update["location"]]);
-                        LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => $app["versionName"]]);
+                        LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => $apk->version. " >>> ". $app["versionName"]]);
 
                     } catch (Throwable $exception){
                         echo $apk->title . " ---- update Failed" . "\n";
