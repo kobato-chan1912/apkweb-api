@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\ApkController;
 use App\Models\App;
 use App\Models\LogUpdate;
 use Illuminate\Console\Command;
@@ -42,6 +43,7 @@ class AppUpdate extends Command
     public function handle()
     {
         $apks = App::where("type_upload", "auto")->get();
+        $apkController = new ApkController();
         // Foreach Apps in --role argument
         foreach($apks as $apk)
         {
@@ -51,11 +53,10 @@ class AppUpdate extends Command
             // Step-2: Check APP Version.
             // If version matches "variable" word
             if($apk->price == 0) {
+                $req = $apkController->modtodoAPI($apk->package_name);
                 if ($app["versionName"] == "Varies with device") {
                     // Step-3: Check App version from 3rd Service. Go step 4.
-                    $req = Http::get(env("BOT_URL")."/apk/$apk->package_name");
-                    $jsonGet = $req->body();
-                    $app["versionName"] = json_decode($jsonGet)->version; // remake app version name
+                    $app["versionName"] = $req["version"]; // remake app version name
                 }
 
                 // Step-4: If App Version does not change, skips this app. Else go to step 5.
