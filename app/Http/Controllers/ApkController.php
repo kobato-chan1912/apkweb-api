@@ -202,10 +202,23 @@ class ApkController extends Controller
         }
     }
 
+    function getRedirect($link){
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $link);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Must be set to true so that PHP follows any "Location:" header
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $a = curl_exec($ch); // $a will contain all headers
+
+        // This is what you need, it will return you the last effective URL
+        return curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+    }
+
     function saveFile($link, $id, $version, $extension)
     {
         $curl_handle=curl_init();
-        curl_setopt($curl_handle, CURLOPT_URL,$link);
+        curl_setopt($curl_handle, CURLOPT_URL, $this->getRedirect($link));
         curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl_handle, CURLOPT_USERAGENT, 'Dark Secret Ninja/1.0');
