@@ -252,12 +252,15 @@ class ApkController extends Controller
 
         $google = new \GooglePlay();
         $app = $google->parseApplication($id, "vi");
+        $gplay = new \Nelexa\GPlay\GPlayApps($defaultLocale = 'vi_VN', $defaultCountry = 'vn');
         $directLink = "";
         $location = "";
 
         if (array_key_exists("packageName", $app)){ // app found and free
             // update version info
             $appRequest = $this->modtodoAPI($id);
+            $cover = $gplay->getAppInfo($id)->getCover()->getOriginalSizeUrl();
+            $app["cover"] = $cover;
             if($app["versionName"] == "Varies with device"){
 //                $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
 //                $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();

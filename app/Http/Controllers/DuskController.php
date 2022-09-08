@@ -57,4 +57,8 @@ class DuskController extends Controller
         $process->stop();
         return $html;
     }
+
+    public function testapk()
+    {
+    }
 }
