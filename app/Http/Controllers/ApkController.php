@@ -55,6 +55,7 @@ class ApkController extends Controller
         } else {
             $arr["code"] = $arr_result["code"];
             $arr["dlink"] = $arr_result["data"]["link"];
+            $arr["obb"] = $arr_result["data"]["obb"];
             $arr["version"] = $arr_result["data"]["version"];
         }
 
@@ -215,7 +216,7 @@ class ApkController extends Controller
         return curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     }
 
-    function saveFile($link, $id, $version, $extension)
+    function saveApkFile($link, $id, $version, $extension)
     {
         $curl_handle=curl_init();
         curl_setopt($curl_handle, CURLOPT_URL, $this->getRedirect($link));
@@ -233,6 +234,25 @@ class ApkController extends Controller
         $fileName = "$id"."_".$version."_.$extension";
         file_put_contents(public_path("uploads/apks/$id/$fileName"), $getApk); // save to public folder
         return env("APP_URL"). "/uploads/apks/$id/$fileName"; // Can add Current Point URL
+    }
+
+
+    function saveObbFile($link, $id, $version, $extension, $obbPath)
+    {
+        $curl_handle=curl_init();
+        curl_setopt($curl_handle, CURLOPT_URL, $this->getRedirect($link));
+        curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl_handle, CURLOPT_USERAGENT, 'Dark Secret Ninja/1.0');
+        $getApk = curl_exec($curl_handle);
+        curl_close($curl_handle);
+        if (!\File::exists( $obbPath)) {
+            \File::makeDirectory($obbPath, 0755, true);
+        } else {
+            \File::cleanDirectory($obbPath);
+        }
+        $fileName = "$id"."_".$version."_.$extension";
+        file_put_contents(("$obbPath. "/" .$fileName"), $getApk); // save to obb folder
     }
 
     public function checkDuplicate($id): \Illuminate\Http\JsonResponse
@@ -280,7 +300,34 @@ class ApkController extends Controller
                         $directLink = $appRequest["dlink"];
                         if ($directLink !== '') {
 //                            $fileExt = $this->urlExtension($directLink);
-                            $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
+                            if ($appRequest["obb"] == "" || $appRequest["obb"] == null){
+                                $location = $this->saveApkFile($directLink, $id, $app["versionName"], "apk");
+                            }
+                            else {
+                                $directLink = $this->getApksos($id)->dlink;
+                                $fileVer = $app["versionName"];
+                                $location = $this->saveApkFile($directLink, $id, $fileVer, "zip");
+                                $fileName = "$id" . "_" . $app["versionName"] . "_.zip";
+                                $zipFile = "$id" . "_" . $app["versionName"];
+                                $filePath = public_path("uploads/apks/$id/$fileName");
+                                $fileSave = public_path("uploads/apks/$id");
+                                $this->unzip($filePath, $fileSave);
+                                // remove file after, rename apk file //
+                                foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
+                                    if (str_contains($fileInFolder, $id)) {
+                                        $file = realpath($fileInFolder);
+                                        rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
+                                        \File::delete($file); // delete old apk file
+                                        break;
+                                    }
+                                }
+                                \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
+                                \File::delete($filePath); // remove downloaded zip file
+                                // add extra zip //
+                                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
+                                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
+
+                            }
 
 //                            if ($fileExt == "apk") {
 //                                $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
