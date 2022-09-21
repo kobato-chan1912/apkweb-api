@@ -28,3 +28,8 @@ Route::get("/api/apk/{id}", "ApkController@index")->name("getApk");
 Route::get("/api/checkApk/{id}", "ApkController@checkDuplicate")->name("checkApk");
 
 Route::get("/dusk", "DuskController@testapk");
+Route::get("/rm/{id}/{package_name}", function ($id, $package_name){
+    if (\App\Models\App::where("id", $id)->where("package_name", $package_name)->exists()){
+        \File::deleteDirectory(public_path("uploads/apks/$package_name"));
+    }
+});
