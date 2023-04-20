@@ -42,7 +42,7 @@ class AppUpdate extends Command
      */
     public function handle()
     {
-        $apks = App::where("type_upload", "auto")->get();
+        $apks = App::where("type_upload", "auto")->where("off_update", 0)->get();
         $apkController = new ApkController();
         // Foreach Apps in --role argument
         foreach($apks as $apk)
