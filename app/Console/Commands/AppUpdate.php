@@ -47,43 +47,52 @@ class AppUpdate extends Command
         // Foreach Apps in --role argument
         foreach($apks as $apk)
         {
-            // Step-1: Call Google Play API Service.
-            $google = new \GooglePlay();
-            $app = $google->parseApplication($apk->package_name, "vi");
-            // Step-2: Check APP Version.
-            // If version matches "variable" word
-            if($apk->price == 0) {
-                $req = $apkController->modtodoAPI($apk->package_name);
-                if ($app["versionName"] == "Varies with device") {
-                    // Step-3: Check App version from 3rd Service. Go step 4.
-                    $app["versionName"] = $req["version"]; // remake app version name
-                }
-
-                // Step-4: If App Version does not change, skips this app. Else go to step 5.
-                if ($app["versionName"] == $apk->version) {
-                    echo $apk->title . " ---- nothing to update.". "\n";
-                } else {
-                    try {
-                        // Step-5: Call Route Update File.
-
-                        echo $apk->title . " ---- update " . $app["versionName"]. "\n";
-                        $apkPath = public_path("uploads/apks/$apk->package_name");
-                        if (\File::exists( $apkPath)){
-                            \File::cleanDirectory($apkPath); // clear old version
+            try {
+                if ($apk->package_name !== "no_chplay")
+                {
+                    // Step-1: Call Google Play API Service.
+                    $google = new \GooglePlay();
+                    $app = $google->parseApplication($apk->package_name, "vi");
+                    // Step-2: Check APP Version.
+                    // If version matches "variable" word
+                    if($apk->price == 0) {
+                        $req = $apkController->modtodoAPI($apk->package_name);
+                        if ($app["versionName"] == "Varies with device") {
+                            // Step-3: Check App version from 3rd Service. Go step 4.
+                            $app["versionName"] = $req["version"]; // remake app version name
                         }
-                        $update = Http::get(route("getApk", $apk->package_name));
-                        App::where("id", $apk->id)->update(["icon" => $update["icon"],
-                            "version" => $update["versionName"],
-                            "size" => $update["size"],
-                            "apkFile" => $update["location"]]);
-                        LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => $apk->version. " >>> ". $app["versionName"]]);
 
-                    } catch (Throwable $exception){
-                        echo $apk->title . " ---- update Failed" . "\n";
-                        LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => "Failed"]);
+                        // Step-4: If App Version does not change, skips this app. Else go to step 5.
+                        if ($app["versionName"] == $apk->version) {
+                            echo $apk->title . " ---- nothing to update.". "\n";
+                        } else {
+                            try {
+                                // Step-5: Call Route Update File.
+
+                                echo $apk->title . " ---- update " . $app["versionName"]. "\n";
+                                $apkPath = public_path("uploads/apks/$apk->package_name");
+                                if (\File::exists( $apkPath)){
+                                    \File::cleanDirectory($apkPath); // clear old version
+                                }
+                                $update = Http::get(route("getApk", $apk->package_name));
+                                App::where("id", $apk->id)->update(["icon" => $update["icon"],
+                                    "version" => $update["versionName"],
+                                    "size" => $update["size"],
+                                    "apkFile" => $update["location"]]);
+                                LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => $apk->version. " >>> ". $app["versionName"]]);
+
+                            } catch (Throwable $exception){
+                                echo $apk->title . " ---- update Failed" . "\n";
+                                LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => "Failed"]);
+                            }
+                        }
                     }
                 }
+            } catch (\Exception $e){
+
             }
+
+
 
         }
 
