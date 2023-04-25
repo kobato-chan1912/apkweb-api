@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Http\Controllers\ApkController;
 use App\Models\App;
+use App\Models\AppTranslation;
 use App\Models\LogUpdate;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -75,6 +76,19 @@ class AppUpdate extends Command
                                     \File::cleanDirectory($apkPath); // clear old version
                                 }
                                 $update = Http::get(route("getApk", $apk->package_name));
+                                $pattern = '/(\d+(\.\d+)+)/';
+                                $replacement = $app["versionName"];
+                                $translations = AppTranslation::where("app_id", $apk->id)->get();
+                                foreach ($translations as $translation){
+                                    $meta_title = $translation->metatitle;
+                                    $meta_description = $translation->meta_description;
+                                    $newMetaTitle = preg_replace($pattern, $replacement, $meta_title);
+                                    $newMetaDescription = preg_replace($pattern, $replacement, $meta_description);
+                                    \App\Models\AppTranslation::where("id", $translation->id)
+                                        ->update(["meta_title" => $newMetaTitle, "meta_description" => $newMetaDescription]);
+                                }
+
+
                                 App::where("id", $apk->id)->update(["icon" => $update["icon"],
                                     "version" => $update["versionName"],
                                     "size" => $update["size"],
