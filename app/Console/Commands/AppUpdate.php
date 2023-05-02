@@ -80,7 +80,7 @@ class AppUpdate extends Command
                                 $replacement = $app["versionName"];
                                 $translations = AppTranslation::where("app_id", $apk->id)->get();
                                 foreach ($translations as $translation){
-                                    $meta_title = $translation->metatitle;
+                                    $meta_title = $translation->meta_title;
                                     $meta_description = $translation->meta_description;
                                     $newMetaTitle = preg_replace($pattern, $replacement, $meta_title);
                                     $newMetaDescription = preg_replace($pattern, $replacement, $meta_description);
