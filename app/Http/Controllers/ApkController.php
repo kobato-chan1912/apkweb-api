@@ -297,7 +297,7 @@ class ApkController extends Controller
                     // change to apksos module
                     //
                     if ($app["price"] == "0" || $app["price"] == null) {
-                        $directLink = $appRequest["dlink"];
+                        $directLink = $appRequest["code"] !==0 ? $appRequest["dlink"] : '';
                         if ($directLink !== '') {
 //                            $fileExt = $this->urlExtension($directLink);
                             if ($appRequest["obb"] == "" || $appRequest["obb"] == null){
