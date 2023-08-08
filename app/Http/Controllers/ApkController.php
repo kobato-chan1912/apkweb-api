@@ -279,7 +279,13 @@ class ApkController extends Controller
         if (array_key_exists("packageName", $app)){ // app found and free
             // update version info
             $appRequest = $this->modtodoAPI($id);
-            $cover = $gplay->getAppInfo($id)->getCover()->getOriginalSizeUrl();
+            try {
+                $cover = $gplay->getAppInfo($id)->getCover()->getOriginalSizeUrl();
+            } catch (\Exception $e)
+            {
+                $cover = null;
+            }
+
             $app["thumbnail"] = $cover;
             if($app["versionName"] == "Varies with device"){
 //                $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
@@ -307,25 +313,25 @@ class ApkController extends Controller
                                 $directLink = $this->getApksos($id)->dlink;
                                 $fileVer = $app["versionName"];
                                 $location = $this->saveApkFile($directLink, $id, $fileVer, "zip");
-                                $fileName = "$id" . "_" . $app["versionName"] . "_.zip";
-                                $zipFile = "$id" . "_" . $app["versionName"];
-                                $filePath = public_path("uploads/apks/$id/$fileName");
-                                $fileSave = public_path("uploads/apks/$id");
-                                $this->unzip($filePath, $fileSave);
-                                // remove file after, rename apk file //
-                                foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
-                                    if (str_contains($fileInFolder, $id)) {
-                                        $file = realpath($fileInFolder);
-                                        rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
-                                        \File::delete($file); // delete old apk file
-                                        break;
-                                    }
-                                }
-                                \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
-                                \File::delete($filePath); // remove downloaded zip file
-                                // add extra zip //
-                                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
-                                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
+//                                $fileName = "$id" . "_" . $app["versionName"] . "_.zip";
+//                                $zipFile = "$id" . "_" . $app["versionName"];
+//                                $filePath = public_path("uploads/apks/$id/$fileName");
+//                                $fileSave = public_path("uploads/apks/$id");
+//                                $this->unzip($filePath, $fileSave);
+//                                // remove file after, rename apk file //
+//                                foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
+//                                    if (str_contains($fileInFolder, $id)) {
+//                                        $file = realpath($fileInFolder);
+//                                        rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
+//                                        \File::delete($file); // delete old apk file
+//                                        break;
+//                                    }
+//                                }
+//                                \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
+//                                \File::delete($filePath); // remove downloaded zip file
+//                                // add extra zip //
+//                                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
+//                                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
 
                             }
 

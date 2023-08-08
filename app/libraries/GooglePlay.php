@@ -101,9 +101,9 @@ class GooglePlay {
         $message = '';
 
         $values["packageName"] = $packageName;
-        $values["versionName"] = $verInfo[1];
-        $values["minimumSDKVersion"] = $verInfo[2];
-        $values["size"] = $verInfo[0];
+        $values["versionName"] = $verInfo[1] ?? null;
+        $values["minimumSDKVersion"] = $verInfo[2] ?? null;
+        $values["size"] = $verInfo[0] ?? null;
         $values['success'] = 1;
         $values['message'] = $message;
 
