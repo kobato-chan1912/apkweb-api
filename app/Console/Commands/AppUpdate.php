@@ -43,66 +43,44 @@ class AppUpdate extends Command
      */
     public function handle()
     {
-        $apks = App::where("type_upload", "auto")->where("off_update", 0)->get();
-        $apkController = new ApkController();
+        $apks = App::where("type_upload", "auto")->where("package_name", "!=", "no_chplay")->where("off_update", 0)->get();
         // Foreach Apps in --role argument
         foreach($apks as $apk)
         {
+
+
             try {
-                if ($apk->package_name !== "no_chplay")
-                {
-                    // Step-1: Call Google Play API Service.
-                    $google = new \GooglePlay();
-                    $app = $google->parseApplication($apk->package_name, "vi");
-                    // Step-2: Check APP Version.
-                    // If version matches "variable" word
-                    if($apk->price == 0) {
-                        $req = $apkController->modtodoAPI($apk->package_name);
-                        if ($app["versionName"] == "Varies with device") {
-                            // Step-3: Check App version from 3rd Service. Go step 4.
-                            $app["versionName"] = $req["version"]; // remake app version name
-                        }
-
-                        // Step-4: If App Version does not change, skips this app. Else go to step 5.
-                        if ($app["versionName"] == $apk->version) {
-                            echo $apk->title . " ---- nothing to update.". "\n";
-                        } else {
-                            try {
-                                // Step-5: Call Route Update File.
-
-                                echo $apk->title . " ---- update " . $app["versionName"]. "\n";
-                                $apkPath = public_path("uploads/apks/$apk->package_name");
-                                if (\File::exists( $apkPath)){
-                                    \File::cleanDirectory($apkPath); // clear old version
-                                }
-                                $update = Http::get(route("getApk", $apk->package_name));
-                                $pattern = '/(\d+(\.\d+)+)/';
-                                $replacement = $app["versionName"];
-                                $translations = AppTranslation::where("app_id", $apk->id)->get();
-                                foreach ($translations as $translation){
-                                    $meta_title = $translation->meta_title;
-                                    $meta_description = $translation->meta_description;
-                                    $newMetaTitle = preg_replace($pattern, $replacement, $meta_title);
-                                    $newMetaDescription = preg_replace($pattern, $replacement, $meta_description);
-                                    \App\Models\AppTranslation::where("id", $translation->id)
-                                        ->update(["meta_title" => $newMetaTitle, "meta_description" => $newMetaDescription]);
-                                }
-
-
-                                App::where("id", $apk->id)->update(["icon" => $update["icon"],
-                                    "version" => $update["versionName"],
-                                    "size" => $update["size"],
-                                    "apkFile" => $update["location"]]);
-                                LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => $apk->version. " >>> ". $app["versionName"]]);
-
-                            } catch (Throwable $exception){
-                                echo $apk->title . " ---- update Failed" . "\n";
-                                LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => "Failed"]);
-                            }
-                        }
+                $updateUrl = env("APP_URL"). "/api/apk/$apk->package_name";
+                $update = Http::get($updateUrl, ["ver" => $apk->version])->json();
+                if ($update["status"] == 200){
+                    $pattern = '/(\d+(\.\d+)+)/';
+                    $replacement = $update["versionName"];
+                    $translations = AppTranslation::where("app_id", $apk->id)->get();
+                    foreach ($translations as $translation){
+                        $meta_title = $translation->meta_title;
+                        $meta_description = $translation->meta_description;
+                        $newMetaTitle = preg_replace($pattern, $replacement, $meta_title);
+                        $newMetaDescription = preg_replace($pattern, $replacement, $meta_description);
+                        \App\Models\AppTranslation::where("id", $translation->id)
+                            ->update(["meta_title" => $newMetaTitle, "meta_description" => $newMetaDescription]);
                     }
+
+
+                    App::find($apk->id)->update([
+                        "obb" => $update["obb"],
+                        "icon" => $update["icon"],
+                        "version" => $update["versionName"],
+                        "size" => $update["size"],
+                        "apkFile" => $update["location"],
+                    ]);
+
+
+
+                    LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => $apk->version. " >>> ". $update["versionName"]]);
+
                 }
             } catch (\Exception $e){
+                LogUpdate::create(["icon" => $apk->icon, "name" => $apk->title, "version" => "Failed"]);
 
             }
 

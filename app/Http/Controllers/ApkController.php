@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-ini_set('memory_limit','4096M');
+ini_set('memory_limit', '4096M');
 
 use App\Models\App;
 use Illuminate\Auth\Events\Validated;
@@ -17,9 +17,49 @@ use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Laravel\Dusk\Browser;
 use Laravel\Dusk\Chrome\ChromeProcess;
+
 class ApkController extends Controller
 {
     //
+
+    function getRemoteFilesize($file_url, $formatSize = true)
+    {
+        $head = array_change_key_case(get_headers($file_url, 1));
+// content-length of download (in bytes), read from Content-Length: field
+        $clen = $head['content-length'] ?? 0;
+// cannot retrieve file size, return “-1”
+        if (!$clen) {
+            return 0;
+        }
+        if (!$formatSize) {
+            return $clen;
+// return size in bytes
+        }
+        $size = $clen;
+        switch ($clen) {
+            case $clen < 1024:
+                $size = $clen . ' B';
+                break;
+            case $clen < 1048576:
+                $size = round($clen / 1024, 2) . ' KB';
+                break;
+            case $clen < 1073741824:
+                $size = round($clen / 1048576, 2) . ' MB';
+                break;
+            case $clen < 1099511627776:
+                $size = round($clen / 1073741824, 2) . ' GB';
+                break;
+        }
+
+        if (is_array($size)) {
+            $sizeInMB = round($size[1] / 1048576, 2);
+            return $sizeInMB . ' MB';
+        }
+
+        return $size;
+    }
+
+
     function modtodoAPI($id): array
     {
         $ch = curl_init();
@@ -50,13 +90,20 @@ class ApkController extends Controller
 
         $result = curl_exec($ch);
         $arr_result = (json_decode($result, true));
-        if($arr_result["code"] == 0){
+        if ($arr_result["code"] == 0) {
             $arr["code"] = $arr_result["code"];
         } else {
+            $obb = $arr_result["data"]["obb"];
+            if ($obb == "") {
+                $arr["dlink"] = $arr_result["data"]["link"];
+            } else {
+                $arr["dlink"] = "https://d.cdnpure.com/b/XAPK/" . $id . "?version=latest";
+            }
             $arr["code"] = $arr_result["code"];
-            $arr["dlink"] = $arr_result["data"]["link"];
+
             $arr["obb"] = $arr_result["data"]["obb"];
             $arr["version"] = $arr_result["data"]["version"];
+            $arr["size"] = $this->getRemoteFilesize($arr["dlink"]);
         }
 
         if (curl_errno($ch)) {
@@ -68,134 +115,18 @@ class ApkController extends Controller
 
 
     }
-    function getApksos($id){
-//        $crawler = GoutteFacade::request('GET', 'https://apksos.com/download-app/'. $id);
-//        $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8.text-center > p > a');
-//        $arrExtracted = $filterData->extract(array('href'));
-//        if (count($arrExtracted) > 0){
-//            $dLink = $arrExtracted[0];
-//        } else {
-//            $dLink = '';
-//        }
-//        return $dLink;
-        $req = Http::get(env("BOT_URL")."/apk/$id");
-        $jsonGet = $req->body();
-        return json_decode($jsonGet);
-    }
 
-    public function loadDusk($id)
-    {
-        $process = (new ChromeProcess)->toProcess();
-        $process->start();
-        $options = (new ChromeOptions)->addArguments(['--disable-gpu', '--headless']);
-        $capabilities = DesiredCapabilities::chrome()->setCapability(ChromeOptions::CAPABILITY, $options);
-        $driver = retry(5, function () use($capabilities) {
-            return RemoteWebDriver::create('http://localhost:9515', $capabilities, 60000, 60000);
-        }, 50);
-        $browser = new Browser($driver);
-        $browser->visit('https://www.unboxapk.com/apk-downloader');
-//        $html = $browser->element('#conversation-title')->getDomProperty('innerText');
-        $browser->waitFor('#pkg-name-field', 10);
-        $browser->type('#pkg-name-field', $id);
-        $browser->click('#app > div > div > div:nth-child(5) > div > button');
-        try {
-            $browser->waitFor("#complete-text", 10);
-            $html = $browser->element('#complete-text')->getDomProperty('innerText');
-        } catch (\Exception $exception){
-            $browser->waitFor("#error-text", 10);
-            $html = $browser->element('#error-text')->getDomProperty('innerText');
-        }
-        $browser->quit();
-        $process->stop();
-    }
-
-    function getApiStore($id)
-    {
-        // Request an package ID //
-
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, 'https://www.unboxapk.com/api/v1/download/');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS,  '{"pkgName":"'.$id.'","platform":"armeabi-v7a","apiLevel":28,"locale":"en_US"}');
-        curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate');
-
-        $headers = array();
-        $headers[] = 'Authority: www.unboxapk.com';
-        $headers[] = 'Accept: */*';
-        $headers[] = 'Accept-Language: vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7,fr-FR;q=0.6,fr;q=0.5';
-        $headers[] = 'Content-Type: application/json';
-        $headers[] = 'Origin: https://www.unboxapk.com';
-        $headers[] = 'Referer: https://www.unboxapk.com/apk-downloader';
-        $headers[] = 'Sec-Ch-Ua: \".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\"';
-        $headers[] = 'Sec-Ch-Ua-Mobile: ?0';
-        $headers[] = 'Sec-Ch-Ua-Platform: \"macOS\"';
-        $headers[] = 'Sec-Fetch-Dest: empty';
-        $headers[] = 'Sec-Fetch-Mode: cors';
-        $headers[] = 'Sec-Fetch-Site: same-origin';
-        $headers[] = 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36';
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        $result = curl_exec($ch);
-        if (curl_errno($ch)) {
-            return 'Error:' . curl_error($ch);
-        }
-        curl_close($ch);
-
-
-        // load dusk
-        try {
-            $this->loadDusk($id);
-        } catch (\Exception $e){
-
-        }
-
-        // solve the result //
-        $req = Http::get("https://www.unboxapk.com/api/v1/download/$id?apiLevel=28&platform=armeabi-v7a&locale=en_US");
-        $jsonGet = $req->body();
-        $jsonStr = json_decode($jsonGet);
-        if (isset($jsonStr->downloadLink)){
-            return $jsonStr->downloadLink;
-        }
-
-    }
-
-    function urlExtension($url): ?string
-    {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_VERBOSE, 1);
-        curl_setopt($ch, CURLOPT_HEADER, 1);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-
-        $response = curl_exec($ch);
-        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $header = substr($response, 0, $header_size);
-        if(str_contains($header, "application/vnd.android.package-archive")){
-            return "apk";
-        }
-        elseif (str_contains($header, "application/zip")){
-            return "zip";
-
-        } else {
-            return null;
-        }
-    }
 
     public function unzip($filePath, $filePathSave)
     {
         $zip = new ZipArchive();
         $status = $zip->open($filePath);
-        if ($status !== true)
-        {
+        if ($status !== true) {
             throw new \Exception($status);
-        }
-        else {
+        } else {
             $storageDestinationPath = $filePathSave;
-            if (!\File::exists( $storageDestinationPath)) {
-            \File::makeDirectory($storageDestinationPath, 0755, true);
+            if (!\File::exists($storageDestinationPath)) {
+                \File::makeDirectory($storageDestinationPath, 0755, true);
             }
             $zip->extractTo($storageDestinationPath);
             $zip->close();
@@ -218,7 +149,7 @@ class ApkController extends Controller
 
     function saveApkFile($link, $id, $version, $extension)
     {
-        $curl_handle=curl_init();
+        $curl_handle = curl_init();
         curl_setopt($curl_handle, CURLOPT_URL, $this->getRedirect($link));
         curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
@@ -226,38 +157,68 @@ class ApkController extends Controller
         $getApk = curl_exec($curl_handle);
         curl_close($curl_handle);
         $savePath = public_path("uploads/apks/$id");
-        if (!\File::exists( $savePath)) {
+        if (!\File::exists($savePath)) {
             \File::makeDirectory($savePath, 0755, true);
-        } else {
+        }
+        else {
             \File::cleanDirectory($savePath);
         }
-        $fileName = "$id"."_".$version."_.$extension";
-        file_put_contents(public_path("uploads/apks/$id/$fileName"), $getApk); // save to public folder
+        $fileName = "$id" .".$extension";
+        $originalPath = public_path("uploads/apks/$id/$fileName");
+        file_put_contents($originalPath, $getApk); // save to public folder
+        if ($extension == "zip")
+        {
+            if (env("MOD") == "zip")
+            {
+                $this->unzip($originalPath, public_path("uploads/apks/$id/$id"));
+                \File::delete($originalPath);
+
+                $fileName = "$id". "_". $version ."_". ".$extension";
+                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
+                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
+
+            }
+
+            if (env("MOD") == "obb") {
+                $this->unzip($originalPath, public_path("uploads/apks/$id"));
+                \File::delete($originalPath);
+
+                $obbPath = public_path("uploads/apks/$id/Android/obb/$id/*.obb");
+                foreach (glob($obbPath) as $fileInFolder) {
+                    if (str_contains($fileInFolder, $id)){
+                        $obbFile = basename($fileInFolder);;
+                        return [env("APP_URL"). "/uploads/apks/$id/$id.apk", env("APP_URL"). "/uploads/apks/$id/Android/obb/$id/$obbFile"]; // Can add Current Point URL
+
+                    }
+                }
+            }
+        }
+
         return env("APP_URL"). "/uploads/apks/$id/$fileName"; // Can add Current Point URL
     }
 
 
     function saveObbFile($link, $id, $version, $extension, $obbPath)
     {
-        $curl_handle=curl_init();
+        $curl_handle = curl_init();
         curl_setopt($curl_handle, CURLOPT_URL, $this->getRedirect($link));
         curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl_handle, CURLOPT_USERAGENT, 'Dark Secret Ninja/1.0');
         $getApk = curl_exec($curl_handle);
         curl_close($curl_handle);
-        if (!\File::exists( $obbPath)) {
+        if (!\File::exists($obbPath)) {
             \File::makeDirectory($obbPath, 0755, true);
         } else {
             \File::cleanDirectory($obbPath);
         }
-        $fileName = "$id"."_".$version."_.$extension";
-        file_put_contents(("$obbPath. "/" .$fileName"), $getApk); // save to obb folder
+        $fileName = "$id" . "_" . $version . "_.$extension";
+        file_put_contents(("$obbPath. " / " .$fileName"), $getApk); // save to obb folder
     }
 
     public function checkDuplicate($id): \Illuminate\Http\JsonResponse
     {
-        if (App::where("package_name", $id)->exists()){
+        if (App::where("package_name", $id)->exists()) {
             $status = 1;
         } else {
             $status = 0;
@@ -275,102 +236,58 @@ class ApkController extends Controller
         $gplay = new \Nelexa\GPlay\GPlayApps($defaultLocale = 'vi_VN', $defaultCountry = 'vn');
         $directLink = "";
         $location = "";
+        $ver = $request->get("ver");
 
-        if (array_key_exists("packageName", $app)){ // app found and free
-            // update version info
-            $appRequest = $this->modtodoAPI($id);
+        if (array_key_exists("packageName", $app)) { // app found and free
             try {
                 $cover = $gplay->getAppInfo($id)->getCover()->getOriginalSizeUrl();
-            } catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 $cover = null;
             }
 
-            $app["thumbnail"] = $cover;
-            if($app["versionName"] == "Varies with device"){
-//                $crawler = GoutteFacade::request('GET', 'https://apksos.com/app/'. $id);
-//                $filterData = $crawler->filter('div.section.row > div.col-sm-12.col-md-8 > ul > li:nth-child(1)')->text();
-//                $versionText = str_replace("Version: ", "", $filterData);
-                $app["versionName"] = $appRequest["version"];
+
+            // update version info
+            $appRequest = $this->modtodoAPI($id);
+            if ($appRequest["code"] == 0) {
+                return $app;
             }
-//            $directLink = $this->getApiStore($id); // If you want to revert to apistore api, uncomment this
-            $directLink = null; // Use APKSOS Server Only // If you want to revert to apistore api, comment this
+            $app["thumbnail"] = $cover;
+            $app["versionName"] = $appRequest["version"];
+            if ($request->has("ver")){
+                if($ver == $app["versionName"]){
+                    return response()->json(["status" => 400]);
+                }
+            }
+
+            $app["size"] = $appRequest["size"];
+
 
             if (!$request->has("mode")) { // if not has mode = only
-                if ($directLink !== null) { // Found Direct Link in API Store
-                    $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
+
+                $directLink = $appRequest["dlink"];
+                if ($appRequest["obb"] == "" || $appRequest["obb"] == null) {
+                    // Không có OBB
+                        $location = $this->saveApkFile($directLink, $id, $app["versionName"], "apk");
                 } else {
-                    // change to apksos module
-                    //
-                    if ($app["price"] == "0" || $app["price"] == null) {
-                        $directLink = $appRequest["code"] !==0 ? $appRequest["dlink"] : '';
-                        if ($directLink !== '') {
-//                            $fileExt = $this->urlExtension($directLink);
-                            if ($appRequest["obb"] == "" || $appRequest["obb"] == null){
-                                $location = $this->saveApkFile($directLink, $id, $app["versionName"], "apk");
-                            }
-                            else {
-                                $directLink = $this->getApksos($id)->dlink;
-                                $fileVer = $app["versionName"];
-                                $location = $this->saveApkFile($directLink, $id, $fileVer, "zip");
-//                                $fileName = "$id" . "_" . $app["versionName"] . "_.zip";
-//                                $zipFile = "$id" . "_" . $app["versionName"];
-//                                $filePath = public_path("uploads/apks/$id/$fileName");
-//                                $fileSave = public_path("uploads/apks/$id");
-//                                $this->unzip($filePath, $fileSave);
-//                                // remove file after, rename apk file //
-//                                foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
-//                                    if (str_contains($fileInFolder, $id)) {
-//                                        $file = realpath($fileInFolder);
-//                                        rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
-//                                        \File::delete($file); // delete old apk file
-//                                        break;
-//                                    }
-//                                }
-//                                \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
-//                                \File::delete($filePath); // remove downloaded zip file
-//                                // add extra zip //
-//                                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
-//                                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
+                        $location = $this->saveApkFile($directLink, $id, $app["versionName"], "zip");
 
-                            }
-
-//                            if ($fileExt == "apk") {
-//                                $location = $this->saveFile($directLink, $id, $app["versionName"], "apk");
-//                            }
-//                            if ($fileExt == "zip") {
-//                                $fileVer = $app["versionName"];
-//                                $location = $this->saveFile($directLink, $id, $fileVer, "zip");
-//                                $fileName = "$id" . "_" . $app["versionName"] . "_.zip";
-//                                $zipFile = "$id" . "_" . $app["versionName"];
-//                                $filePath = public_path("uploads/apks/$id/$fileName");
-//                                $fileSave = public_path("uploads/apks/$id");
-//                                $this->unzip($filePath, $fileSave);
-//                                // remove file after, rename apk file //
-//                                foreach (glob(public_path("uploads/apks/$id/$id/*.apk")) as $fileInFolder) {
-//                                    if (str_contains($fileInFolder, $id)) {
-//                                        $file = realpath($fileInFolder);
-//                                        rename($file, public_path("uploads/apks/$id/$id/$zipFile.apk"));
-//                                        \File::delete($file); // delete old apk file
-//                                        break;
-//                                    }
-//                                }
-//                                \File::delete(public_path("uploads/apks/$id/$id/How-to-install.txt"));
-//                                \File::delete($filePath); // remove downloaded zip file
-//                                // add extra zip //
-//                                new \GoodZipArchive(public_path("uploads/apks/$id/$id"), public_path("uploads/apks/$id/$fileName"));
-//                                \File::deleteDirectory(public_path("uploads/apks/$id/$id"));
-//
-//                            }
-                        }
-                    }
                 }
+
             }
         }
 //
         $app["dlink"] = $directLink;
-        $app["location"] = $location;
-        // save to DB //
+        if (is_array($location))
+        {
+            $app["location"] = $location[0];
+            $app["obb"] = $location[1];
+        } else {
+            $app["location"] = $location;
+            $app["obb"] = null;
+        }
+
+        $app["status"] = 200;
+
 
 
         return response()->json($app);

@@ -24,6 +24,7 @@ Route::get('/', function () {
 |
 */
 
+Route::get("/get/{id}", "ApkController@modtodoAPI");
 Route::get("/api/apk/{id}", "ApkController@index")->name("getApk");
 Route::get("/api/checkApk/{id}", "ApkController@checkDuplicate")->name("checkApk");
 
