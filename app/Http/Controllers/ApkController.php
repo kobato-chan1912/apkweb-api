@@ -194,6 +194,18 @@ class ApkController extends Controller
             }
         }
 
+
+        if (env("CLOUD") == "on")
+        {
+            // upload to cloud
+            $path = public_path("/uploads/apks/$id/$fileName");
+            $endPath = "jotta:apks/$id";
+            shell_exec("rclone delete '$endPath'");
+            shell_exec("rclone copy '$path' '$endPath'");
+            \File::deleteDirectory(public_path("uploads/apks/$id"));
+            return exec("rclone link $endPath/$fileName");
+        }
+
         return env("APP_URL"). "/uploads/apks/$id/$fileName"; // Can add Current Point URL
     }
 
@@ -236,7 +248,7 @@ class ApkController extends Controller
         $gplay = new \Nelexa\GPlay\GPlayApps($defaultLocale = 'vi_VN', $defaultCountry = 'vn');
         $directLink = "";
         $location = "";
-        $ver = $request->get("ver");
+
 
         if (array_key_exists("packageName", $app)) { // app found and free
             try {
@@ -254,7 +266,7 @@ class ApkController extends Controller
             $app["thumbnail"] = $cover;
             $app["versionName"] = $appRequest["version"];
             if ($request->has("ver")){
-                if($ver == $app["versionName"]){
+                if($request->get("ver") == $app["versionName"]){
                     return response()->json(["status" => 400]);
                 }
             }
@@ -267,9 +279,9 @@ class ApkController extends Controller
                 $directLink = $appRequest["dlink"];
                 if ($appRequest["obb"] == "" || $appRequest["obb"] == null) {
                     // Không có OBB
-                        $location = $this->saveApkFile($directLink, $id, $app["versionName"], "apk");
+                    $location = $this->saveApkFile($directLink, $id, $app["versionName"], "apk");
                 } else {
-                        $location = $this->saveApkFile($directLink, $id, $app["versionName"], "zip");
+                    $location = $this->saveApkFile($directLink, $id, $app["versionName"], "zip");
 
                 }
 
