@@ -186,8 +186,21 @@ class ApkController extends Controller
                 $obbPath = public_path("uploads/apks/$id/Android/obb/$id/*.obb");
                 foreach (glob($obbPath) as $fileInFolder) {
                     if (str_contains($fileInFolder, $id)){
-                        $obbFile = basename($fileInFolder);;
-                        return [env("APP_URL"). "/uploads/apks/$id/$id.apk", env("APP_URL"). "/uploads/apks/$id/Android/obb/$id/$obbFile"]; // Can add Current Point URL
+                        $obbFile = basename($fileInFolder);
+                        if (env("CLOUD") !== "on")
+                        {
+                            return [env("APP_URL"). "/uploads/apks/$id/$id.apk", env("APP_URL"). "/uploads/apks/$id/Android/obb/$id/$obbFile"]; // Can add Current Point URL
+                        } else {
+
+                            $path = public_path("/uploads/apks/$id");
+                            $endPath = "jotta:apks/$id";
+                            shell_exec("rclone delete '$endPath'");
+                            shell_exec("rclone copy '$path' '$endPath'");
+                            \File::deleteDirectory($path);
+                            $apkFile = exec("rclone link $endPath/$id.apk");
+                            $obbFile = exec("rclone link $endPath/Android/obb/$id/$obbFile");
+                            return [$apkFile, $obbFile];
+                        }
 
                     }
                 }
@@ -204,6 +217,8 @@ class ApkController extends Controller
             shell_exec("rclone copy '$path' '$endPath'");
             \File::deleteDirectory(public_path("uploads/apks/$id"));
             return exec("rclone link $endPath/$fileName");
+
+
         }
 
         return env("APP_URL"). "/uploads/apks/$id/$fileName"; // Can add Current Point URL
