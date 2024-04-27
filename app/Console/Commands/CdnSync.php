@@ -43,15 +43,14 @@ class CdnSync extends Command
         foreach ($apks as $apk)
         {
             echo "Syncing $apk->title\n";
-//            $id = $apk->package_name;
-//            $location = $apk->apkFile;
-//            $fileName = basename($location);
-//            $endPath = "jotta:apks/$id";
-//            shell_exec("rclone delete '$endPath'");
-//            shell_exec("rclone copy '$location' '$endPath'");
-//            \File::deleteDirectory(public_path("uploads/apks/$id"));
-//            $location = exec("rclone link $endPath/$fileName");
-//            $apk->update(["apkFile" => $location]);
+            $id = $apk->package_name;
+            $location = $apk->apkFile;
+            $fileName = time(). "-". basename($location);
+            $endPath = "jotta:apks/$id";
+            shell_exec("rclone delete '$endPath'");
+            shell_exec("rclone copy '$location' '$endPath'");
+            $location = exec("rclone link $endPath/$fileName");
+            $apk->update(["apkFile" => $location]);
 
         }
 
