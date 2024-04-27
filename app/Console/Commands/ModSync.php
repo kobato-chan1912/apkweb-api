@@ -42,6 +42,7 @@ class ModSync extends Command
     {
         $apks = Mod::where('modUrl', 'LIKE', '%cdn.apkgosu.com%')->get();
         foreach ($apks as $apk) {
+            echo "syncing ". $apk->modUrl;
             $location = Str::replace("https://cdn.apkgosu.com", "/home/flashvps/cdn.apkgosu.com/apkweb-backend/public", $apk->modUrl);
 
             $fileName = basename($apk->modUrl);
