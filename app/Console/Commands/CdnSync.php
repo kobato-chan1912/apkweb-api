@@ -175,7 +175,7 @@ class CdnSync extends Command
             $path = $location;
 
             $endPath = "jotta:apks/$id";
-            shell_exec("rclone delete '$endPath'");
+//            shell_exec("rclone delete '$endPath'");
             shell_exec("rclone copy '$path' '$endPath'");
             $location = exec("rclone link $endPath/$fileName");
 
