@@ -160,28 +160,29 @@ class CdnSync extends Command
 
         $apks = App::whereIn("title", $games)->get();
         foreach ($apks as $apk) {
-
-            if ($apk->apkFile == null) {
-                $titleSlug = Str::slug($apk->title);
-                $location = "/home/flashvps/cdn.apkgosu.com/apkweb-backend/public/userfiles/apks/$titleSlug/$titleSlug.apk";
-            } else {
-                $location = Str::replace("https://cdn.apkgosu.com", "/home/flashvps/cdn.apkgosu.com/apkweb-backend/public", $apk->apkFile);
-            }
-
-            $id = $apk->package_name;
-            echo "Syncing $apk->title". "\n";
-
-            $fileName = basename($location);
-            $path = $location;
-
-            $endPath = "jotta:apks/$id";
-//            shell_exec("rclone delete '$endPath'");
-            shell_exec("rclone copy '$path' '$endPath'");
-            $location = exec("rclone link $endPath/$fileName");
-
-            if (Str::contains($location, "jotta"))
             {
-                $apk->update(["apkFile" => $location]);
+                if ($apk->apkFile == null) {
+                    $titleSlug = Str::slug($apk->title);
+                    $location = "/home/flashvps/cdn.apkgosu.com/apkweb-backend/public/userfiles/apks/$titleSlug/$titleSlug.apk";
+                } else {
+                    $location = Str::replace("https://cdn.apkgosu.com", "/home/flashvps/cdn.apkgosu.com/apkweb-backend/public", $apk->apkFile);
+                }
+
+                $id = $apk->package_name;
+                echo "Syncing $apk->title" . "\n";
+
+                $fileName = basename($location);
+                $path = $location;
+
+                $endPath = "jotta:apks/$id";
+//            shell_exec("rclone delete '$endPath/$fileName'");
+                shell_exec("rclone copy '$path' '$endPath'");
+                $location = exec("rclone link $endPath/$fileName");
+
+                if (Str::contains($location, "jotta")) {
+                    $apk->update(["apkFile" => $location]);
+                }
+
             }
         }
 
