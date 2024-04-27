@@ -42,15 +42,21 @@ class CdnSync extends Command
         $apks = App::where('apkFile', 'LIKE', '%cdn.apkgosu.com%')->get();
         foreach ($apks as $apk)
         {
-            echo "Syncing $apk->title\n";
-            $id = $apk->package_name;
-            $location = $apk->apkFile;
-            $fileName = time(). "-". basename($location);
-            $endPath = "jotta:apks/$id";
-            shell_exec("rclone delete '$endPath'");
-            shell_exec("rclone copy '$location' '$endPath'");
-            $location = exec("rclone link $endPath/$fileName");
-            $apk->update(["apkFile" => $location]);
+
+            try {
+                echo "Syncing $apk->title\n";
+                $id = $apk->package_name;
+                $location = $apk->apkFile;
+                $fileName = time(). "-". basename($location);
+                $endPath = "jotta:apks/$id";
+                shell_exec("rclone delete '$endPath'");
+                shell_exec("rclone copy '$location' '$endPath'");
+                $location = exec("rclone link $endPath/$fileName");
+                $apk->update(["apkFile" => $location]);
+            } catch (\Exception $exception){
+
+            }
+
 
         }
 
