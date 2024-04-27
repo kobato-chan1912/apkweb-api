@@ -46,7 +46,7 @@ class ModSync extends Command
             $location = Str::replace("https://cdn.apkgosu.com", "/home/flashvps/cdn.apkgosu.com/apkweb-backend/public", $apk->modUrl);
 
             $fileName = basename($apk->modUrl);
-            $endPath = "jotta:mods/";
+            $endPath = "jotta:mods";
 
             shell_exec("rclone copy '$location' '$endPath'");
             $location = exec("rclone link $endPath/$fileName");
