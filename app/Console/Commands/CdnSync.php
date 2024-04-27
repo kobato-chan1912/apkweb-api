@@ -169,20 +169,20 @@ class CdnSync extends Command
             }
 
             $id = $apk->package_name;
-            echo "Syncing $apk->title -- path: $location -- end-path: jotta:apks/$id " . "\n";
-//
-//            $fileName = basename($location);
-//            $path = $location;
-//
-//            $endPath = "jotta:apks/$id";
-//            shell_exec("rclone delete '$endPath'");
-//            shell_exec("rclone copy '$path' '$endPath'");
-//            $location = exec("rclone link $endPath/$fileName");
-//
-//            if (Str::contains($location, "jotta"))
-//            {
-//                $apk->update(["apkFile" => $location]);
-//            }
+            echo "Syncing $apk->title". "\n";
+
+            $fileName = basename($location);
+            $path = $location;
+
+            $endPath = "jotta:apks/$id";
+            shell_exec("rclone delete '$endPath'");
+            shell_exec("rclone copy '$path' '$endPath'");
+            $location = exec("rclone link $endPath/$fileName");
+
+            if (Str::contains($location, "jotta"))
+            {
+                $apk->update(["apkFile" => $location]);
+            }
         }
 
 
