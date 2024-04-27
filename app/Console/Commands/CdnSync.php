@@ -169,7 +169,7 @@ class CdnSync extends Command
             }
 
             $id = $apk->package_name;
-            echo "Syncing $apk->title\n -- path: $location -- end-path: jotta:apks/$id ";
+            echo "Syncing $apk->title -- path: $location -- end-path: jotta:apks/$id " . "\n";
 //
 //            $fileName = basename($location);
 //            $path = $location;
