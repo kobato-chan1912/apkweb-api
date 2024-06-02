@@ -49,7 +49,7 @@ class ModSync extends Command
             $endPath = "jotta:mods";
 
             shell_exec("rclone copy '$location' '$endPath'");
-            $location = exec("rclone link $endPath/$fileName");
+            $location = exec("rclone link '$endPath/$fileName'");
 
             if (Str::contains($location, "jotta")) {
                 $apk->update(["modUrl" => $location]);
